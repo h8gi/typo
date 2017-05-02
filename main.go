@@ -153,7 +153,7 @@ func drawAll() {
 	// text area
 	ty.DrawTextArea(5, 2, w-10, h-10)
 	// input area
-	ty.DrawInputArea(5, h-5, w-10, 3)
+	ty.DrawInputArea((w-50)/2, h-5, 50, 3)
 	DrawText(5, h-2, ty.ia.CurrentInput, termbox.ColorDefault, termbox.ColorDefault)
 	DrawText(5, h-1, ty.ta.CurrentWord(), termbox.ColorDefault, termbox.ColorDefault)
 	termbox.Flush()
