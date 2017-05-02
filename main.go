@@ -27,18 +27,18 @@ func (ta *TextArea) SetText(text string) {
 }
 
 func (ta *TextArea) CurrentWord() string {
-	if ta.currentPos > len(ta.words) {
-		return ""
+	if ta.currentPos < len(ta.words) {
+		return ta.words[ta.currentPos]
 	}
-	return ta.words[ta.currentPos]
+	return ""
 }
 
 func (ta *TextArea) NextWord() (string, bool) {
 	ta.currentPos += 1
-	if ta.currentPos > len(ta.words) {
-		return "", false
+	if ta.currentPos < len(ta.words) {
+		return ta.words[ta.currentPos], true
 	}
-	return ta.words[ta.currentPos], true
+	return "", false
 }
 
 type InputArea struct {
@@ -80,6 +80,10 @@ func (ty *Typo) NextWord() (string, bool) {
 
 func (ty *Typo) IsMatch() bool {
 	return strings.HasPrefix(ty.ta.CurrentWord(), ty.ia.CurrentInput)
+}
+
+func (ty *Typo) IsFinish() bool {
+	return (ty.ta.CurrentWord() == ty.ia.CurrentInput) && (ty.ta.currentPos == len(ty.ta.words)-1)
 }
 
 func (ty *Typo) DrawTextArea(x, y, width, height int) {
@@ -141,7 +145,7 @@ func (ia *InputArea) DrawCursor(x, y int) {
 }
 
 // main
-var ty Typo = NewTypo("When on board H.M.S. 'Beagle,' as naturalist, I was much struck with certain facts in the distribution of the inhabitants of South America, and in the geological relations of the present to the past inhabitants of that continent. These facts seemed to me to throw some light on the origin of species--that mystery of mysteries, as it has been called by one of our greatest philosophers. On my return home, it occurred to me, in 1837, that something might perhaps be made out on this question by patiently accumulating and reflecting on all sorts of facts which could possibly have any bearing on it. After five years' work I allowed myself to speculate on the subject, and drew up some short notes; these I enlarged in 1844 into a sketch of the conclusions, which then seemed to me probable: from that period to the present day I have steadily pursued the same object. I hope that I may be excused for entering on these personal details, as I give them to show that I ")
+var ty Typo = NewTypo("When on board H.M.S.")
 
 func drawAll() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
@@ -187,6 +191,9 @@ mainloop:
 		case termbox.EventResize:
 		case termbox.EventError:
 			panic(ev.Err)
+		}
+		if ty.IsFinish() {
+			break
 		}
 		drawAll()
 	}
