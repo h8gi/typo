@@ -7,12 +7,7 @@ import (
 	termbox "github.com/nsf/termbox-go"
 )
 
-type TextArea struct {
-	rawText    string
-	words      []string
-	currentPos int
-}
-
+// show text appropriately
 func DrawText(x, y int, word string, fg, bg termbox.Attribute) {
 	xoff := 0
 	for _, r := range word {
@@ -21,22 +16,29 @@ func DrawText(x, y int, word string, fg, bg termbox.Attribute) {
 	}
 }
 
+type TextArea struct {
+	rawText        string
+	words          []string
+	currentWordPos int
+	currentCharPos int
+}
+
 func (ta *TextArea) SetText(text string) {
 	ta.rawText = text
 	ta.words = strings.Fields(text)
 }
 
 func (ta *TextArea) CurrentWord() string {
-	if ta.currentPos < len(ta.words) {
-		return ta.words[ta.currentPos]
+	if ta.currentWordPos < len(ta.words) {
+		return ta.words[ta.currentWordPos]
 	}
 	return ""
 }
 
 func (ta *TextArea) NextWord() (string, bool) {
-	ta.currentPos += 1
-	if ta.currentPos < len(ta.words) {
-		return ta.words[ta.currentPos], true
+	ta.currentWordPos += 1
+	if ta.currentWordPos < len(ta.words) {
+		return ta.words[ta.currentWordPos], true
 	}
 	return "", false
 }
@@ -49,6 +51,7 @@ type InputArea struct {
 type Typo struct {
 	ia *InputArea
 	ta *TextArea
+	ok bool
 }
 
 func NewTypo(text string) Typo {
@@ -58,18 +61,21 @@ func NewTypo(text string) Typo {
 	return Typo{
 		ta: &ta,
 		ia: &ia,
+		ok: true,
 	}
 }
 
 // r is not space
 func (ty *Typo) GetRune(r rune) {
 	ty.ia.CurrentInput = ty.ia.CurrentInput + string(r)
+	ty.ok = ty.IsMatch()
 }
 
 func (ty *Typo) BackSpace() {
 	if ty.ia.CurrentInput != "" {
 		ty.ia.CurrentInput = ty.ia.CurrentInput[0 : len(ty.ia.CurrentInput)-1]
 	}
+	ty.ok = ty.IsMatch()
 }
 
 func (ty *Typo) NextWord() (string, bool) {
@@ -83,7 +89,7 @@ func (ty *Typo) IsMatch() bool {
 }
 
 func (ty *Typo) IsFinish() bool {
-	return (ty.ta.CurrentWord() == ty.ia.CurrentInput) && (ty.ta.currentPos == len(ty.ta.words)-1)
+	return (ty.ta.CurrentWord() == ty.ia.CurrentInput) && (ty.ta.currentWordPos == len(ty.ta.words)-1)
 }
 
 func (ty *Typo) DrawTextArea(x, y, width, height int) {
@@ -94,8 +100,8 @@ func (ty *Typo) DrawTextArea(x, y, width, height int) {
 		colfg := termbox.ColorDefault
 		colbg := termbox.ColorDefault
 
-		if i == ty.ta.currentPos {
-			if ty.IsMatch() {
+		if i == ty.ta.currentWordPos {
+			if ty.ok {
 				colfg = termbox.ColorGreen | termbox.AttrUnderline
 			} else {
 				colfg = termbox.ColorRed | termbox.AttrUnderline
@@ -121,7 +127,7 @@ func (ty *Typo) DrawInputArea(x, y, width, height int) {
 	// yoff := 0
 	colfg := termbox.ColorDefault
 	colbg := termbox.ColorDefault
-	if ty.IsMatch() {
+	if ty.ok {
 		colfg = termbox.ColorGreen
 	} else {
 		colfg = termbox.ColorRed
