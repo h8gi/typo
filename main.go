@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"strings"
+	"time"
 
 	runewidth "github.com/mattn/go-runewidth"
 	termbox "github.com/nsf/termbox-go"
@@ -52,6 +54,7 @@ type Typo struct {
 	ia *InputArea
 	ta *TextArea
 	ok bool
+	dr time.Duration
 }
 
 func NewTypo(text string) Typo {
@@ -152,10 +155,7 @@ func (ty *Typo) DrawInputArea(x, y, width, height int) {
 	termbox.SetCursor(x+runewidth.StringWidth(displayText)+2, y)
 }
 
-// main
-var ty Typo = NewTypo("When on board H.M.S.")
-
-func drawAll() {
+func (ty *Typo) Draw() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	w, h := termbox.Size()
 	// text area
@@ -167,21 +167,16 @@ func drawAll() {
 	termbox.Flush()
 }
 
-func main() {
-	err := termbox.Init()
-	if err != nil {
-		panic(err)
-	}
-
-	defer termbox.Close()
-	drawAll()
+func (ty *Typo) Start() {
+	start := time.Now()
+	ty.Draw()
 mainloop:
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
 			switch ev.Key {
 			case termbox.KeyEsc:
-				break mainloop
+				return
 			case termbox.KeySpace:
 				if ty.ia.CurrentInput == ty.ta.CurrentWord() {
 					ty.NextWord()
@@ -194,15 +189,53 @@ mainloop:
 				if ev.Ch != 0 {
 					ty.GetRune(ev.Ch)
 				}
-
 			}
-		case termbox.EventResize:
 		case termbox.EventError:
 			panic(ev.Err)
 		}
+
 		if ty.IsFinish() {
-			break
+			break mainloop
 		}
-		drawAll()
+
+		ty.Draw()
 	}
+	ty.dr = time.Since(start)
+	ty.Result()
+}
+
+func (ty *Typo) Result() {
+	resultStr := fmt.Sprintf("WPM: %f", 12*float64(len(ty.ta.rawText))/ty.dr.Seconds())
+	termbox.HideCursor()
+	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+	w, h := termbox.Size()
+	DrawText(w/2-10, h/2, resultStr,
+		termbox.ColorDefault, termbox.ColorDefault)
+	termbox.Flush()
+mainloop:
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			break mainloop
+		default:
+			termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+			w, h := termbox.Size()
+			DrawText(w/2-10, h/2, resultStr,
+				termbox.ColorDefault, termbox.ColorDefault)
+			termbox.Flush()
+		}
+	}
+}
+
+// main
+func main() {
+	err := termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	defer termbox.Close()
+
+	var ty Typo = NewTypo("When on board H.M.S.")
+	ty.Start()
 }
