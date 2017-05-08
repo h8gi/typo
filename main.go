@@ -136,12 +136,14 @@ func (ty *Typo) DrawInputArea(x, y, width, height int) {
 		termbox.SetCell(x+i, y-1, '─', colfg, colbg)
 		termbox.SetCell(x+i, y+1, '─', colfg, colbg)
 	}
-	DrawText(x+2, y, ty.ia.CurrentInput, colfg, termbox.ColorDefault)
-	ty.ia.DrawCursor(x, y)
-}
-
-func (ia *InputArea) DrawCursor(x, y int) {
-	termbox.SetCursor(x+runewidth.StringWidth(ia.CurrentInput)+2, y)
+	var displayText string
+	if len(ty.ia.CurrentInput) > width-3 {
+		displayText = ty.ia.CurrentInput[len(ty.ia.CurrentInput)-width+2:]
+	} else {
+		displayText = ty.ia.CurrentInput
+	}
+	DrawText(x+2, y, displayText, colfg, termbox.ColorDefault)
+	termbox.SetCursor(x+runewidth.StringWidth(displayText)+2, y)
 }
 
 // main
